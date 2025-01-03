@@ -11,6 +11,10 @@ terraform {
   }
 }
 
+data "local_file" "external_source" {
+  filename = "datasource.txt"
+}
+
 resource "random_pet" "meu_pet" {
   length = 3
   prefix = "Sr."
@@ -21,6 +25,8 @@ resource "local_file" "exemplo" {
   filename = "exemplo.txt"
   content = <<EOF
   Conteúdo: ${var.file_content} 
+
+  Conteúdo vindo de um data source: ${data.local_file.external_source.content}
 
   Meu pet: ${random_pet.meu_pet.id} 
   
