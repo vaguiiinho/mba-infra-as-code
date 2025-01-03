@@ -1,5 +1,5 @@
 output "private_dns" {
-  value = aws_instance.example_instance.private_dns
+  value = aws_instance.instance.private_dns
 }
 
 # output "eip" {

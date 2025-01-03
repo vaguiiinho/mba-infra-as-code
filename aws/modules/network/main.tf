@@ -1,50 +1,64 @@
-resource "aws_vpc" "example_vpc" {
-  cidr_block = "10.0.0.0/16"
+resource "aws_vpc" "vpc" {
+  cidr_block = var.vpc_cidr_block
+
+  tags = {
+    "Name" = "${var.prefix}-vpc"
+  }
 }
 
-resource "aws_subnet" "example_subnet" {
-  vpc_id            = aws_vpc.example_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-west-2a"
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
-resource "aws_internet_gateway" "example_igw" {
-  vpc_id = aws_vpc.example_vpc.id
+resource "aws_subnet" "subnets" {
+  count             = length(var.subnet_cidr_blocks)
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = var.subnet_cidr_blocks[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.available.names)]
+
+  tags = {
+    "Name" = "${var.prefix}-subnet-${count.index}"
+  }
 }
 
-resource "aws_route_table" "example_route_table" {
-  vpc_id = aws_vpc.example_vpc.id
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
+}
+
+resource "aws_route_table" "route_table" {
+  vpc_id = aws_vpc.vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.example_igw.id
+    gateway_id = aws_internet_gateway.igw.id
   }
 }
 
-resource "aws_route_table_association" "example_association" {
-  subnet_id      = aws_subnet.example_subnet.id
-  route_table_id = aws_route_table.example_route_table.id
+resource "aws_route_table_association" "association" {
+  count = length(var.subnet_cidr_blocks)
+  subnet_id      = aws_subnet.subnets[count.index].id
+  route_table_id = aws_route_table.route_table.id
 }
 
-resource "aws_security_group" "example_sg" {
-  vpc_id = aws_vpc.example_vpc.id
-  name   = "Allow SSH"
+resource "aws_security_group" "sg" {
+  vpc_id = aws_vpc.vpc.id
+  name   = "${var.prefix}Allow SSH"
 
   tags = {
-    name = "Allow SSH"
+    name = "${var.prefix}Allow SSH"
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "example_sg_ingress_rule" {
-  security_group_id = aws_security_group.example_sg.id
+resource "aws_vpc_security_group_ingress_rule" "sg_ingress_rule" {
+  security_group_id = aws_security_group.sg.id
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 22
   ip_protocol       = "tcp"
   to_port           = 22
 }
 
-resource "aws_vpc_security_group_egress_rule" "example_sg_egress_rule" {
-  security_group_id = aws_security_group.example_sg.id
+resource "aws_vpc_security_group_egress_rule" "sg_egress_rule" {
+  security_group_id = aws_security_group.sg.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
