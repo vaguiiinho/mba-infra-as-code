@@ -1,3 +1,10 @@
 variable "file_content" {
-  default = "esse é o valor padrão"
+  default = "Conteúdo default"
+  description = "Essa variável representa o valor a ser salvo no arquivo."
+  type = string
+}
+
+variable "var_bool" {
+  default = false
+  type = bool
 }
