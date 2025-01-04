@@ -4,25 +4,7 @@ resource "aws_launch_template" "aws_launch_template" {
   image_id      = "ami-07d9cf938edb0739b"
   instance_type = "t2.micro"
 
-  user_data = base64encode(
-    <<EOF
-  #!/bin/bash
-  set -e  # Fail on errors
-  yum update -y
-  amazon-linux-extras enable nginx1
-  yum install -y nginx
-  systemctl start nginx
-  systemctl enable nginx
-  public_ip=$(curl -s http://checkip.amazonaws.com)
-  echo "<html>
-    <head> <title>Hello, World!</title> </head>
-    <body>
-      <p>This instance is running on $public_ip</p>
-    </body>
-  </html>" > /usr/share/nginx/html/index.html
-  systemctl restart nginx
-  EOF
-  )
+  user_data = base64encode(var.user_data)
 
   network_interfaces {
     associate_public_ip_address = true
@@ -40,9 +22,9 @@ resource "aws_launch_template" "aws_launch_template" {
 
 resource "aws_autoscaling_group" "asg" {
   name                = "${var.prefix}-asg"
-  desired_capacity    = 2
-  min_size            = 1
-  max_size            = 3
+  desired_capacity    = var.desired_capacity
+  min_size            = var.min_size
+  max_size            = var.max_size
   vpc_zone_identifier = var.subnet_ids
   target_group_arns   = [aws_alb_target_group.app_tg.arn]
 
@@ -56,8 +38,8 @@ resource "aws_autoscaling_policy" "scale_out_policy" {
   name                   = "${var.prefix}-scale_out"
   autoscaling_group_name = aws_autoscaling_group.asg.name
   adjustment_type        = "ChangeInCapacity"
-  scaling_adjustment     = 1
-  cooldown               = 60
+  scaling_adjustment     = var.scale_out.scaling_adjustment
+  cooldown               = var.scale_out.cooldown
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_out_alarm" {
@@ -67,7 +49,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_out_alarm" {
   comparison_operator = "GreaterThanOrEqualToThreshold"
   namespace           = "AWS/EC2"
   metric_name         = "CPUUtilization"
-  threshold           = 60
+  threshold           = var.scale_out.threshold
   statistic           = "Average"
   evaluation_periods  = 3
   period              = 30
@@ -81,8 +63,8 @@ resource "aws_autoscaling_policy" "scale_in_policy" {
   name                   = "${var.prefix}-scale_in"
   autoscaling_group_name = aws_autoscaling_group.asg.name
   adjustment_type        = "ChangeInCapacity"
-  scaling_adjustment     = -1
-  cooldown               = 60
+  scaling_adjustment     = var.scale_in.scaling_adjustment
+  cooldown               = var.scale_in.cooldown
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_in_alarm" {
@@ -92,7 +74,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_in_alarm" {
   comparison_operator = "LessThanOrEqualToThreshold"
   namespace           = "AWS/EC2"
   metric_name         = "CPUUtilization"
-  threshold           = 20
+  threshold           = var.scale_in.threshold
   statistic           = "Average"
   evaluation_periods  = 3
   period              = 30
