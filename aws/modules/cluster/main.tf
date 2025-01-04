@@ -1,10 +1,3 @@
-data "aws_secretsmanager_secret" "secret" {
-  arn = "arn:aws:secretsmanager:us-west-2:859066267568:secret:prod/TerraformTest2-GQLrow"
-}
-
-data "aws_secretsmanager_secret_version" "current" {
-  secret_id = data.aws_secretsmanager_secret.secret.id
-}
 
 resource "aws_launch_template" "aws_launch_template" {
   name          = "${var.prefix}-template"
@@ -13,10 +6,22 @@ resource "aws_launch_template" "aws_launch_template" {
 
   user_data = base64encode(
     <<EOF
-    #!/bin/bash
-    DB_STRING="Server=${jsondecode(data.aws_secretsmanager_secret_version.current.secret_string)["Host"]};DB=${jsondecode(data.aws_secretsmanager_secret_version.current.secret_string)["DB"]}"
-    echo $DB_STRING > test.txt
-    EOF
+  #!/bin/bash
+  set -e  # Fail on errors
+  yum update -y
+  amazon-linux-extras enable nginx1
+  yum install -y nginx
+  systemctl start nginx
+  systemctl enable nginx
+  public_ip=$(curl -s http://checkip.amazonaws.com)
+  echo "<html>
+    <head> <title>Hello, World!</title> </head>
+    <body>
+      <p>This instance is running on $public_ip</p>
+    </body>
+  </html>" > /usr/share/nginx/html/index.html
+  systemctl restart nginx
+  EOF
   )
 
   network_interfaces {
