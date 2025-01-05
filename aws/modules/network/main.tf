@@ -4,6 +4,20 @@ resource "aws_vpc" "vpc" {
   tags = {
     "Name" = "${var.prefix}-vpc"
   }
+
+  # lifecycle {
+  #   ignore_changes = [tags]
+
+  #   precondition {
+  #     condition     = tonumber(split("/",var.vpc_cidr_block)[1]) > 18
+  #     error_message = "Invalid cidr_block"
+  #   }
+
+  #   postcondition {
+  #     condition     = contains(keys(self.tags), "Environment")
+  #     error_message = "The instance must have an 'Environment' tag."
+  #   }
+  # }
 }
 
 data "aws_availability_zones" "available" {
