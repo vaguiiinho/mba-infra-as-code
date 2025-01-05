@@ -1,11 +1,11 @@
 terraform {
   required_providers {
     local = {
-      source = "hashicorp/local"
+      source  = "hashicorp/local"
       version = "2.5.1"
     }
-     random = {
-      source = "hashicorp/random"
+    random = {
+      source  = "hashicorp/random"
       version = "3.6.3"
     }
   }
@@ -16,14 +16,14 @@ data "local_file" "external_source" {
 }
 
 resource "random_pet" "meu_pet" {
-  length = 3
-  prefix = "Sr."
+  length    = 3
+  prefix    = "Sr."
   separator = " "
 }
 
 resource "local_file" "exemplo" {
   filename = "exemplo.txt"
-  content = <<EOF
+  content  = <<EOF
   Conteúdo: ${var.file_content} 
 
   Conteúdo vindo de um data source: ${data.local_file.external_source.content}

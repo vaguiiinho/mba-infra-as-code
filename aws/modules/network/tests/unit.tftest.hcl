@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 variables {
-  prefix            = "test"
-  vpc_cidr_block    = "10.0.0.0/18"
+  prefix             = "test"
+  vpc_cidr_block     = "10.0.0.0/18"
   subnet_cidr_blocks = ["10.0.0.0/24", "10.0.1.0/24"]
 }
 

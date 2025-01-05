@@ -23,14 +23,14 @@ variable "person_map" {
 }
 
 variable "person_tuple" {
-  type    = tuple([ string, number ])
+  type    = tuple([string, number])
   default = ["Igor", 28]
 }
 
 variable "person" {
-  type    = object({
-    name  = string
-    age   = number
+  type = object({
+    name = string
+    age  = number
   })
   default = {
     name = "Igor"
