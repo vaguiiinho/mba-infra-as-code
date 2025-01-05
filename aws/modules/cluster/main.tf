@@ -1,7 +1,6 @@
-
-resource "aws_launch_template" "aws_launch_template" {
+resource "aws_launch_template" "template" {
   name          = "${var.prefix}-template"
-  image_id      = "ami-07d9cf938edb0739b"
+  image_id      = "ami-01cd4de4363ab6ee8"
   instance_type = "t2.micro"
 
   user_data = base64encode(var.user_data)
@@ -13,9 +12,8 @@ resource "aws_launch_template" "aws_launch_template" {
 
   tag_specifications {
     resource_type = "instance"
-
     tags = {
-      Name = "${var.prefix}-node"
+      "Name" = "${var.prefix}-node"
     }
   }
 }
@@ -26,20 +24,20 @@ resource "aws_autoscaling_group" "asg" {
   min_size            = var.min_size
   max_size            = var.max_size
   vpc_zone_identifier = var.subnet_ids
-  target_group_arns   = [aws_alb_target_group.app_tg.arn]
+  target_group_arns   = [aws_lb_target_group.app_tg.arn]
 
   launch_template {
-    id      = aws_launch_template.aws_launch_template.id
+    id      = aws_launch_template.template.id
     version = "$Latest"
   }
 }
 
 resource "aws_autoscaling_policy" "scale_out_policy" {
-  name                   = "${var.prefix}-scale_out"
+  name                   = "${var.prefix}-scale-out"
   autoscaling_group_name = aws_autoscaling_group.asg.name
   adjustment_type        = "ChangeInCapacity"
-  scaling_adjustment     = var.scale_out.scaling_adjustment
-  cooldown               = var.scale_out.cooldown
+  scaling_adjustment     = var.scale_in.scaling_adjustment
+  cooldown               = var.scale_in.cooldown
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_out_alarm" {
@@ -49,22 +47,22 @@ resource "aws_cloudwatch_metric_alarm" "scale_out_alarm" {
   comparison_operator = "GreaterThanOrEqualToThreshold"
   namespace           = "AWS/EC2"
   metric_name         = "CPUUtilization"
-  threshold           = var.scale_out.threshold
+  threshold           = var.scale_in.threshold
   statistic           = "Average"
-  evaluation_periods  = 3
-  period              = 30
+  evaluation_periods  = "3"
+  period              = "30"
 
   dimensions = {
-    autoscaling_group_name = aws_autoscaling_group.asg.name
+    AutoScalingGroupName = aws_autoscaling_group.asg.name
   }
 }
 
 resource "aws_autoscaling_policy" "scale_in_policy" {
-  name                   = "${var.prefix}-scale_in"
+  name                   = "${var.prefix}-scale-in"
   autoscaling_group_name = aws_autoscaling_group.asg.name
   adjustment_type        = "ChangeInCapacity"
-  scaling_adjustment     = var.scale_in.scaling_adjustment
-  cooldown               = var.scale_in.cooldown
+  scaling_adjustment     = var.scale_out.scaling_adjustment
+  cooldown               = var.scale_out.cooldown
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_in_alarm" {
@@ -74,13 +72,13 @@ resource "aws_cloudwatch_metric_alarm" "scale_in_alarm" {
   comparison_operator = "LessThanOrEqualToThreshold"
   namespace           = "AWS/EC2"
   metric_name         = "CPUUtilization"
-  threshold           = var.scale_in.threshold
+  threshold           = var.scale_out.threshold
   statistic           = "Average"
-  evaluation_periods  = 3
-  period              = 30
+  evaluation_periods  = "3"
+  period              = "30"
 
   dimensions = {
-    autoscaling_group_name = aws_autoscaling_group.asg.name
+    AutoScalingGroupName = aws_autoscaling_group.asg.name
   }
 }
 
@@ -98,7 +96,7 @@ resource "aws_lb" "app_lb" {
   }
 }
 
-resource "aws_alb_target_group" "app_tg" {
+resource "aws_lb_target_group" "app_tg" {
   name     = "${var.prefix}-app-tg"
   port     = 80
   protocol = "HTTP"
@@ -118,13 +116,13 @@ resource "aws_alb_target_group" "app_tg" {
   }
 }
 
-resource "aws_alb_listener" "app_lb_listener" {
+resource "aws_lb_listener" "app_lb_listener" {
   load_balancer_arn = aws_lb.app_lb.arn
-  port              = 80
+  port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.app_tg.arn
+    target_group_arn = aws_lb_target_group.app_tg.arn
   }
 }
