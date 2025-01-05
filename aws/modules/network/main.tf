@@ -4,20 +4,6 @@ resource "aws_vpc" "vpc" {
   tags = {
     "Name" = "${var.prefix}-vpc"
   }
-
-  # lifecycle {
-  #   ignore_changes = [tags]
-
-  #   precondition {
-  #     condition     = tonumber(split("/",var.vpc_cidr_block)[1]) > 18
-  #     error_message = "Invalid cidr_block"
-  #   }
-
-  #   postcondition {
-  #     condition     = contains(keys(self.tags), "Environment")
-  #     error_message = "The instance must have an 'Environment' tag."
-  #   }
-  # }
 }
 
 data "aws_availability_zones" "available" {
@@ -25,15 +11,13 @@ data "aws_availability_zones" "available" {
 }
 
 resource "aws_subnet" "subnets" {
-  # count             = length(var.subnet_cidr_blocks)
-  for_each = toset(var.subnet_cidr_blocks)
-  vpc_id   = aws_vpc.vpc.id
-  # cidr_block        = var.subnet_cidr_blocks[count.index]
-  cidr_block = each.key
-  # availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.available.names)]
+  count             = length(var.subnet_cidr_blocks)
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = var.subnet_cidr_blocks[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.available.names)]
 
   tags = {
-    "Name" = "${var.prefix}-subnet-${each.key}"
+    "Name" = "${var.prefix}-subnet-${count.index}"
   }
 }
 
@@ -50,19 +34,18 @@ resource "aws_route_table" "route_table" {
   }
 }
 
-resource "aws_route_table_association" "association" {
-  # count          = length(var.subnet_cidr_blocks)
-  for_each       = toset(var.subnet_cidr_blocks)
-  subnet_id      = aws_subnet.subnets[each.key].id
+resource "aws_route_table_association" "route_table_association" {
+  count = length(var.subnet_cidr_blocks)
+  subnet_id      = aws_subnet.subnets[count.index].id
   route_table_id = aws_route_table.route_table.id
 }
 
 resource "aws_security_group" "sg" {
   vpc_id = aws_vpc.vpc.id
-  name   = "${var.prefix}Allow SSH"
+  name   = "${var.prefix}-allow-ssh"
 
   tags = {
-    name = "${var.prefix}Allow SSH"
+    Name = "${var.prefix}-allow-ssh"
   }
 }
 

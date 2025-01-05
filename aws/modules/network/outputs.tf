@@ -1,5 +1,5 @@
 output "subnet_ids" {
-  value = values(aws_subnet.subnets)[*].id
+  value = aws_subnet.subnets[*].id
 }
 
 output "security_group_id" {
